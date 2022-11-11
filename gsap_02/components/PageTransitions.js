@@ -1,17 +1,18 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import { TransitionGroup, CSSTransition } from 'react-transition-group';
 import gsap from 'gsap';
 
 const MainComponent = styled.div`
-  transform-style: preserve-3d;
+  clip-path: 'polygon(0 0, 60% 0, 100% 0, 100% 50%, 100% 100%, 60% 100%, 0 100%)';
+  /* transform-style: preserve-3d; */
   &.page-enter-active {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    z-index: 4;
-    opacity: 0;
+    /* opacity: 0; */
+    z-index: 0;
     backface-visibility: hidden;
   }
 
@@ -31,6 +32,7 @@ const MainComponent = styled.div`
     main {
       transform: translateY(-${(props) => props.routingPageOffset}px);
     }
+    z-index: 1;
     backface-visibility: hidden;
   }
 
@@ -42,74 +44,31 @@ const SecondaryComponent = styled.div`
   position: relative;
 `;
 
-const Grid = styled.div`
-  width: 100%;
-  height: 100vh;
-  top: 0;
-  left: 0;
-  position: fixed;
-  display: grid;
-  grid-template-rows: repeat(10, 1fr);
-  grid-template-columns: repeat(10, 1fr);
-
-  div {
-    background-color: #fff;
-    visibility: hidden;
-  }
-`;
-
 const PageTransitions = ({ children, route, routingPageOffset }) => {
   const [transitioning, setTransitioning] = useState();
-  const tl = useRef();
-  const transitionRef = useRef();
 
-  const playTransition = () => {
-    tl.current.play(0);
+  const onExitStart = (element) => {
+    gsap
+      .timeline()
+      .fromTo(
+        element,
+        {
+          clipPath:
+            'polygon(0 0, 60% 0, 100% 0, 100% 50%, 100% 100%, 60% 100%, 0 100%)',
+        },
+        {
+          clipPath:
+            // 'polygon(14% 29%, 24% 12%, 34% 33%, 61% 32%, 73% 10%, 87% 51%, 86% 76%, 74% 87%, 40% 90%, 19% 83%, 11% 68%, 9% 55%)',
+            'polygon(0% 20%, 60% 20%, 60% 0%, 100% 50%, 60% 100%, 60% 80%, 0% 80%)',
+        }
+      )
+      .to(element, { xPercent: 100 });
     setTransitioning(true);
   };
 
   const stopTransition = () => {
     setTransitioning('');
   };
-
-  useEffect(() => {
-    if (!transitionRef.current) {
-      return;
-    }
-
-    const squares = transitionRef.current.children;
-    gsap.set(squares, {
-      autoAlpha: 1,
-    });
-
-    tl.current = gsap
-      .timeline({
-        repeat: 1,
-        repeatDelay: 0.2,
-        yoyo: true,
-        paused: true,
-      })
-      .fromTo(
-        squares,
-        {
-          scale: 0,
-          borderRadius: '100%',
-        },
-        {
-          scale: 1,
-          borderRadius: 0,
-          stagger: {
-            grid: 'auto',
-            from: 'random',
-            ease: 'sine',
-            amount: 0.4, //要調整（timeoutの半数？）
-          },
-        }
-      );
-    return () => {
-      tl.current.kill();
-    };
-  }, []);
 
   return (
     <>
@@ -118,7 +77,7 @@ const PageTransitions = ({ children, route, routingPageOffset }) => {
           key={route}
           classNames='page'
           timeout={800}
-          onEnter={playTransition}
+          onExit={onExitStart}
           onExited={stopTransition}
         >
           <MainComponent routingPageOffset={routingPageOffset}>
@@ -128,11 +87,6 @@ const PageTransitions = ({ children, route, routingPageOffset }) => {
           </MainComponent>
         </CSSTransition>
       </TransitionGroup>
-      <Grid ref={transitionRef}>
-        {[...Array(100)].map((_, i) => (
-          <div key={i} />
-        ))}
-      </Grid>
     </>
   );
 };
