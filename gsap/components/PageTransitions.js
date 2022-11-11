@@ -1,51 +1,20 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {
   TransitionGroup,
   CSSTransition,
 } from 'react-transition-group';
-
-const transitionZoom = keyframes`
-0%{
-	transform: scale(1);
-}
-30%{
-	transform: scale(.5);
-}
-70%{
-	transform: scale(.5);
-}
-100%{
-	transform: scale(1);
-}
-`;
-
-const transitionOutFlip = keyframes`
-from{
-	transform: rotateY(0) translateZ(-1px);
-}
-to{
-	transform: rotateY(180deg) translateZ(-1px);
-}
-`;
-
-const transitionInFlip = keyframes`
-from{
-	transform: rotateY(-180deg) translateZ(1px);
-}
-to{
-	transform: rotateY(0) translateZ(1px);
-}`;
+import gsap from 'gsap';
 
 const MainComponent = styled.div`
+  transform-style: preserve-3d;
   &.page-enter-active {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
+    z-index: 4;
     opacity: 0;
-    animation: ${transitionInFlip} 0.4s 0.25s
-      cubic-bezier(0.37, 0, 0.63, 1) both;
     backface-visibility: hidden;
   }
 
@@ -54,8 +23,6 @@ const MainComponent = styled.div`
     .page-transition-inner {
       height: 100vh;
       overflow: hidden;
-      animation: ${transitionZoom} 0.8s
-        cubic-bezier(0.45, 0, 0.55, 1) both;
       background-color: #fff;
     }
   }
@@ -69,9 +36,6 @@ const MainComponent = styled.div`
         -${(props) => props.routingPageOffset}px
       );
     }
-    animation: ${transitionOutFlip} 0.4s 0.25s
-      cubic-bezier(0.37, 0, 0.63, 1) both;
-
     backface-visibility: hidden;
   }
 
@@ -83,20 +47,78 @@ const SecondaryComponent = styled.div`
   position: relative;
 `;
 
+const Grid = styled.div`
+  width: 100%;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  position: fixed;
+  display: grid;
+  grid-template-rows: repeat(10, 1fr);
+  grid-template-columns: repeat(10, 1fr);
+
+  div {
+    background-color: #fff;
+    visibility: hidden;
+  }
+`;
+
 const PageTransitions = ({
   children,
   route,
   routingPageOffset,
 }) => {
   const [transitioning, setTransitioning] = useState();
+  const tl = useRef();
+  const transitionRef = useRef();
 
   const playTransition = () => {
+    tl.current.play(0);
     setTransitioning(true);
   };
 
   const stopTransition = () => {
     setTransitioning('');
   };
+
+  useEffect(() => {
+    if (!transitionRef.current) {
+      return;
+    }
+
+    const squares = transitionRef.current.children;
+    gsap.set(squares, {
+      autoAlpha: 1,
+    });
+
+    tl.current = gsap
+      .timeline({
+        repeat: 1,
+        repeatDelay: 0.2,
+        yoyo: true,
+        paused: true,
+      })
+      .fromTo(
+        squares,
+        {
+          scale: 0,
+          borderRadius: '100%',
+        },
+        {
+          scale: 1,
+          borderRadius: 0,
+          stagger: {
+            grid: 'auto',
+            from: 'random',
+            ease: 'sine',
+            amount: 0.4, //要調整（timeoutの半数？）
+          },
+        }
+      );
+    return () => {
+      tl.current.kill();
+    };
+  }, []);
 
   return (
     <>
@@ -119,6 +141,11 @@ const PageTransitions = ({
           </MainComponent>
         </CSSTransition>
       </TransitionGroup>
+      <Grid ref={transitionRef}>
+        {[...Array(100)].map((_, i) => (
+          <div key={i} />
+        ))}
+      </Grid>
     </>
   );
 };
