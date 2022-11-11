@@ -67,6 +67,15 @@ const GlobalStyle = createGlobalStyle`
 		background-color: #333;
 		color: #fff;
 	}
+
+	.transitioning{
+		width: 100%;
+		height: 100vh;
+		overflow: hidden;
+		position: relative;
+		background-color: #aaa;
+		perspective: 1800px;
+	}
 `;
 
 export default GlobalStyle;
